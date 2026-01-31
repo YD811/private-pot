@@ -78,7 +78,7 @@
     "prisma": "^6.2.0",
     "tsc-watch": "^6.3.1",
     "typescript": "^5.9.3",
-    "vitest": "^2.1.8"
+    "vitest": "^4.0.18"
   },
   "lint-staged": {
     "*.ts": "eslint"
