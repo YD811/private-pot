@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Group {
+  id                   String         @id @default(uuid())
+  telegramGroupId      String         @unique @map("telegram_group_id")
+  walletAddress        String         @unique @map("wallet_address")
+  encryptedPrivateKey  String         @map("encrypted_private_key")
+  encryptionIv         String         @map("encryption_iv")
+  totalDeposits        BigInt         @default(0) @map("total_deposits")
+  isPaused             Boolean        @default(false) @map("is_paused")
+  isPublicLeaderboard  Boolean        @default(true) @map("is_public_leaderboard")
+  cachedPnLAmount      BigInt?        @map("cached_pnl_amount")
+  cachedPnLPercent     Float?         @map("cached_pnl_percent")
+  cachedCurrentValue   BigInt?        @map("cached_current_value")
+  cachedPnLUpdatedAt  DateTime?      @map("cached_pnl_updated_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+  
+  members              Member[]
+  depositCodes         DepositCode[]
+  deposits             Deposit[]
+  trades               Trade[]
+  positions            Position[]
+  withdrawals          Withdrawal[]
+  dailyPnL             DailyPnL[]
+
+  @@map("groups")
+}
+
+model Member {
+  id                      String    @id @default(uuid())
+  groupId                 String    @map("group_id")
+  telegramUserId          String    @map("telegram_user_id")
+  telegramUsername        String?   @map("telegram_username")
+  depositAddress          String    @unique @map("deposit_address")
+  encryptedPrivateKey     String    @map("encrypted_private_key")
+  encryptionIv            String    @map("encryption_iv")
+  deposits                BigInt    @default(0)
+  isTrader                Boolean   @default(false) @map("is_trader")
+  tradeLimit              BigInt?   @map("trade_limit")
+  dailyLimit              BigInt?   @map("daily_limit")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  group                   Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  depositRecords          Deposit[]
+  trades                  Trade[]
+  withdrawals             Withdrawal[]
+
+  @@unique([groupId, telegramUserId])
+  @@map("members")
+}
+
+model DepositCode {
+  id              String    @id @default(uuid())
+  groupId         String    @map("group_id")
+  telegramUserId  String    @map("telegram_user_id")
+  code            String    @unique
+  used            Boolean   @default(false)
+  expiresAt       DateTime  @map("expires_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  group           Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  deposits        Deposit[]
+
+  @@index([code, used])
+  @@map("deposit_codes")
+}
+
+model Deposit {
+  id                    String       @id @default(uuid())
+  groupId               String       @map("group_id")
+  memberId              String       @map("member_id")
+  depositCodeId         String?      @map("deposit_code_id")
+  transactionSignature  String       @unique @map("transaction_signature")
+  amount                BigInt
+  detectedAt            DateTime     @map("detected_at")
+  sweptAt               DateTime?    @map("swept_at")
+  createdAt             DateTime     @default(now()) @map("created_at")
+  
+  group                 Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member                Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  depositCode           DepositCode? @relation(fields: [depositCodeId], references: [id])
+
+  @@map("deposits")
+}
+
+model Trade {
+  id                    String    @id @default(uuid())
+  groupId               String    @map("group_id")
+  traderId              String    @map("trader_id")
+  transactionSignature  String    @unique @map("transaction_signature")
+  tradeType             String    @map("trade_type")
+  tokenAddress          String    @map("token_address")
+  amountIn              BigInt    @map("amount_in")
+  amountOut             BigInt    @map("amount_out")
+  tokenIn               String    @map("token_in")
+  tokenOut              String    @map("token_out")
+  commission            BigInt    @default(0)
+  executedAt            DateTime  @map("executed_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  
+  group                 Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  trader                Member    @relation(fields: [traderId], references: [id], onDelete: Cascade)
+
+  @@map("trades")
+}
+
+model Position {
+  id            String    @id @default(uuid())
+  groupId       String    @map("group_id")
+  tokenAddress  String    @map("token_address")
+  balance       BigInt
+  costBasis     BigInt    @map("cost_basis")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  group         Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, tokenAddress])
+  @@map("positions")
+}
+
+model Withdrawal {
+  id                    String    @id @default(uuid())
+  groupId               String    @map("group_id")
+  memberId              String    @map("member_id")
+  amount                BigInt
+  recipientAddress      String    @map("recipient_address")
+  transactionSignature  String    @unique @map("transaction_signature")
+  executedAt            DateTime  @map("executed_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  
+  group                 Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member                Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@map("withdrawals")
+}
+
+model DailyPnL {
+  id            String    @id @default(uuid())
+  groupId       String    @map("group_id")
+  date          DateTime  @db.Date
+  totalDeposits BigInt    @map("total_deposits")
+  currentValue  BigInt    @map("current_value")
+  pnlAmount     BigInt    @map("pnl_amount")
+  pnlPercent    Float     @map("pnl_percent")
+  solBalance    BigInt    @map("sol_balance")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  group         Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, date])
+  @@index([groupId, date])
+  @@index([date])
+  @@map("daily_pnl")
+}
+
+model Commission {
+  id                    String    @id @default(uuid())
+  type                  String    // 'deposit' or 'sell'
+  amountIn              BigInt    @map("amount_in")       // Total amount before fee
+  feeAmount             BigInt    @map("fee_amount")      // Fee collected
+  rateBps               Int       @map("rate_bps")        // 15 for 0.15%
+  operatorWallet        String    @map("operator_wallet")
+  transactionSignature  String?   @map("transaction_signature")  // Fee tx signature
+  linkedSignature       String    @map("linked_signature")       // Deposit or sell tx
+  groupId               String    @map("group_id")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  @@map("commissions")
+}
+
+// Privacy Cash pending sweep - tracks deposits waiting for private withdrawal
+model PendingPrivateSweep {
+  id                    String    @id @default(uuid())
+  groupId               String    @map("group_id")
+  memberId              String    @map("member_id")
+  depositSignature      String    @unique @map("deposit_signature")
+  amount                BigInt                                      // Total amount deposited to Privacy Cash
+  status                String    @default("pending")               // pending, deposited, withdrawing, completed, failed
+  depositTxSignature    String?   @map("deposit_tx_signature")      // Privacy Cash deposit tx
+  withdraw1TxSignature  String?   @map("withdraw1_tx_signature")    // First withdrawal tx
+  withdraw2TxSignature  String?   @map("withdraw2_tx_signature")    // Second withdrawal tx
+  tempWallet1Address    String?   @map("temp_wallet1_address")      // First temp wallet
+  tempWallet2Address    String?   @map("temp_wallet2_address")      // Second temp wallet
+  withdraw1Amount       BigInt?   @map("withdraw1_amount")          // Amount for first withdrawal
+  withdraw2Amount       BigInt?   @map("withdraw2_amount")          // Amount for second withdrawal
+  scheduledWithdrawAt   DateTime? @map("scheduled_withdraw_at")     // When to process withdrawals
+  errorMessage          String?   @map("error_message")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([scheduledWithdrawAt])
+  @@map("pending_private_sweeps")
+}
+
+// Privacy Cash pending withdrawal - tracks withdrawals waiting for private transfer
+model PendingPrivateWithdrawal {
+  id                    String    @id @default(uuid())
+  groupId               String    @map("group_id")
+  memberId              String    @map("member_id")
+  withdrawalId          String?   @map("withdrawal_id")             // Link to Withdrawal record once created
+  recipientAddress      String    @map("recipient_address")         // User's final destination address
+  amount                BigInt                                      // Total amount to withdraw
+  status                String    @default("pending")               // pending, deposited, withdrawing, completed, failed
+  depositTxSignature    String?   @map("deposit_tx_signature")      // Privacy Cash deposit tx (from group wallet)
+  withdraw1TxSignature  String?   @map("withdraw1_tx_signature")    // First withdrawal tx
+  withdraw2TxSignature  String?   @map("withdraw2_tx_signature")    // Second withdrawal tx
+  tempWallet1Address    String?   @map("temp_wallet1_address")      // First temp wallet
+  tempWallet2Address    String?   @map("temp_wallet2_address")      // Second temp wallet
+  tempWallet1Key        String?   @map("temp_wallet1_key")          // Encrypted key for temp wallet 1
+  tempWallet2Key        String?   @map("temp_wallet2_key")          // Encrypted key for temp wallet 2
+  withdraw1Amount       BigInt?   @map("withdraw1_amount")          // Amount for first withdrawal
+  withdraw2Amount       BigInt?   @map("withdraw2_amount")          // Amount for second withdrawal
+  scheduledWithdrawAt   DateTime? @map("scheduled_withdraw_at")     // When to process withdrawals
+  errorMessage          String?   @map("error_message")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([scheduledWithdrawAt])
+  @@map("pending_private_withdrawals")
+}
+
+

@@ -1,0 +1,63 @@
+services:
+  postgres:
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    image: postgres:16.4
+    networks:
+      - project
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    restart: always
+    environment:
+      - PRIVACY_CASH_ENABLED=${PRIVACY_CASH_ENABLED}
+      - OPERATOR_FEE_WALLET_ADDRESS=${OPERATOR_FEE_WALLET_ADDRESS}
+      # Bot Configuration
+      - BOT_TOKEN=${BOT_TOKEN}
+      - BOT_MODE=webhook
+      - BOT_WEBHOOK=https://pot-bot.mustafin.dev/webhook
+      - BOT_WEBHOOK_SECRET=${BOT_WEBHOOK_SECRET}
+      - BOT_ADMINS=${BOT_ADMINS}
+      - BOT_ALLOWED_UPDATES=${BOT_ALLOWED_UPDATES}
+
+      # Server Configuration
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=3000
+
+      # Database
+      - DATABASE_URL=postgresql://postgres@postgres:5432/postgres
+
+      # Wallet Configuration (for pooled trading fund)
+      - WALLET_MASTER_SEED=${WALLET_MASTER_SEED}
+      - WALLET_ENCRYPTION_KEY=${WALLET_ENCRYPTION_KEY}
+
+      # Solana Configuration (mainnet for production trading)
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+
+      # Logging (Pino logger as per agents.md)
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+      # nginx-proxy labels
+      - VIRTUAL_HOST=pot-bot.mustafin.dev
+      - VIRTUAL_PORT=3000
+      - LETSENCRYPT_HOST=pot-bot.mustafin.dev
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+    build: ./
+    command: [./start.sh]
+    ports:
+      - '3000'
+    depends_on:
+      - postgres
+    networks:
+      - project
+      - web
+
+networks:
+  project:
+  web:
+    external: true
+
+volumes:
+  postgres_data:

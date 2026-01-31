@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: potbot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: potbot
+      POSTGRES_PASSWORD: potbot_dev_password
+      POSTGRES_DB: potbot
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - '5432:5432'
+    volumes:
+      - potbot-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U potbot -d potbot]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  potbot-postgres-data:
+    name: potbot-postgres-data
