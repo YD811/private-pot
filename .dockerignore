@@ -1,0 +1,41 @@
+# Test files
+tests/
+*.test.ts
+*.test.js
+vitest.config.ts
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+build/
+coverage/
+
+# Node modules (will be installed in container)
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
