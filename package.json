@@ -43,7 +43,7 @@
     "@grammyjs/types": "3.22.2",
     "@hono/node-server": "1.19.5",
     "@jup-ag/api": "^6.0.44",
-    "@prisma/client": "^6.2.0",
+    "@prisma/client": "^7.3.0",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.0",
     "bip32": "^4.0.0",
