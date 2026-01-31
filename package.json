@@ -46,7 +46,7 @@
     "@prisma/client": "^6.2.0",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.0",
-    "bip32": "^4.0.0",
+    "bip32": "^5.0.0",
     "bip39": "^3.1.0",
     "bs58": "^6.0.0",
     "callback-data": "1.1.1",
