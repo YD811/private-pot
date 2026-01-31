@@ -62,7 +62,7 @@
     "qrcode": "^1.5.4",
     "tsx": "4.20.4",
     "tweetnacl": "^1.0.3",
-    "valibot": "0.42.1"
+    "valibot": "1.2.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "4.12.0",
